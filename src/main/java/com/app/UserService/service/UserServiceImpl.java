@@ -5,6 +5,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -27,41 +28,41 @@ public class UserServiceImpl implements IUser {
 	
 	@Autowired
 	RestTemplate restTemplate;
-	
+	   @Autowired
+	    private PasswordEncoder passwordEncoder;
 
 	
 	@Override
 	public User registerUser(User user) {
-		// TODO Auto-generated method stub
-		
-		//save to the db
-		User savedUser= userRepository.save(user);
-		
-		
-		//prepare the notification
-		NotificationRequest request = new NotificationRequest();
-		request.setNotificationType(NotificationType.USER_REGISTERED);
-		request.setChannelType(ChannelType.EMAIL);
-		request.setUserId(savedUser.getUser_id().toString());
-		request.setEmail(savedUser.getEmail());
-		
-		
-		//call to the notification service
-		
-		try {
-		restTemplate.postForObject("http://NOTIFICATIONSERVICE/notifications/send", request, String.class);
-		
-		}
-		catch (Exception e) {
-	        // Notification failure should NOT break user creation
-			logger.error("Failed to send notification for user {}", savedUser.getUser_id());
-		}
-		
-		return savedUser;
-		
-		
-		
+
+	    // ✅ Encode password BEFORE saving
+	    user.setUserPassword(passwordEncoder.encode(user.getUserPassword()));
+
+	    User savedUser = userRepository.save(user);
+
+	    NotificationRequest request = new NotificationRequest();
+	    request.setNotificationType(NotificationType.USER_REGISTERED);
+	    request.setChannelType(ChannelType.EMAIL);
+	    request.setUserId(savedUser.getUserId().toString());
+	    request.setEmail(savedUser.getUserEmail());
+
+	    try {
+	        restTemplate.postForObject(
+	            "http://NOTIFICATIONSERVICE/notifications/send",
+	            request,
+	            String.class
+	        );
+	    } catch (Exception e) {
+	        logger.error("Failed to send notification for user {}", savedUser.getUserId());
+	    }
+
+	    return savedUser;
 	}
+	
+	
+	
+	
+	
 	public User getUserById(Long id) {
 		
 		logger.info("Fetching user with id: {} ", id);
@@ -86,22 +87,22 @@ public class UserServiceImpl implements IUser {
 	
 	public User updateUser(User newUser) {
 		
-		User existUSer = userRepository.findById(newUser.getUser_id()).orElseThrow( ()-> new RuntimeException("User Not Found")); 
+		User existUSer = userRepository.findById(newUser.getUserId()).orElseThrow( ()-> new RuntimeException("User Not Found")); 
 		
 		
 		
-		if(newUser.getName()!=null) {
-			existUSer.setName(newUser.getName());
+		if(newUser.getUserName()!=null) {
+			existUSer.setUserName(newUser.getUserName());
 		}
-		if(newUser.getEmail()!=null) {
-			existUSer.setEmail(newUser.getEmail());
+		if(newUser.getUserEmail()!=null) {
+			existUSer.setUserEmail(newUser.getUserEmail());
 		}
-		if(newUser.getPassword()!=null) {
-			existUSer.setPassword(newUser.getPassword());
+		if(newUser.getUserPassword()!=null) {
+			existUSer.setUserPassword(newUser.getUserPassword());
 		}
-		if(newUser.getPhone()!=null)
+		if(newUser.getUserPhone()!=null)
 		{
-			existUSer.setPhone(newUser.getPhone());
+			existUSer.setUserPhone(newUser.getUserPhone());
 		}
 		
 		
